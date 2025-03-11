@@ -399,6 +399,9 @@ struct SolverChoice {
             num_diff_coeff *= std::pow(2.0,-6);
         }
 
+        // Use PdV work term?
+        pp.query("use_pdvwork",use_pdvwork);
+
         // Use monotonic advection?
         pp.query("use_mono_adv",use_mono_adv);
 
@@ -749,6 +752,9 @@ struct SolverChoice {
 
     // Monotonic advection limiter
     bool use_mono_adv{false};
+
+    // PdV Work Source Term Flag
+    bool use_pdvwork{false};
 
     // Rebalance wrfinput
     bool rebalance_wrfinput{false};

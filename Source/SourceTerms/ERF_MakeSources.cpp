@@ -185,6 +185,9 @@ void make_sources (int level,
         Box bx  = mfi.tilebox();
 
         const Array4<const Real> & cell_data  = S_data[IntVars::cons].array(mfi);
+        const Array4<const Real> & xmom_arr   = S_data[IntVars::xmom].array(mfi);
+        const Array4<const Real> & ymom_arr   = S_data[IntVars::ymom].array(mfi);
+        const Array4<const Real> & zmom_arr   = S_data[IntVars::zmom].array(mfi);
         const Array4<const Real> & cell_prim  = S_prim.array(mfi);
         const Array4<Real>       & cell_src   = source.array(mfi);
 
@@ -429,6 +432,51 @@ void make_sources (int level,
             });
         }
 
+        // *************************************************************************************
+        // 11. Add PDV Work source terms
+        // *************************************************************************************
+
+        //Reference code from FastEddy:
+        //    pgm1 = polyGamma_d - 1.0;
+        //
+        //  dudx = 0.5*dXi_d*((u[ip1jk]*(1.0/rho[ip1jk]))-(u[im1jk]*(1.0/rho[im1jk])));
+        //  dvdy = 0.5*dYi_d*((v[ijp1k]*(1.0/rho[ijp1k]))-(v[ijm1k]*(1.0/rho[ijm1k])));
+        //  dwdz = 0.5*(J31_d[ijk]*dXi_d*((w[ip1jk]*(1.0/rho[ip1jk]))-(w[im1jk]*(1.0/rho[im1jk])))
+        //       +J32_d[ijk]*dYi_d*((w[ijp1k]*(1.0/rho[ijp1k]))-(w[ijm1k]*(1.0/rho[ijm1k])))
+        //       +J33_d[ijk]*dZi_d*((w[ijkp1]*(1.0/rho[ijkp1]))-(w[ijkm1]*(1.0/rho[ijkm1]))));
+        //
+        //  pdv = - theta[ijk] * pgm1 * ( dudx + dvdy + dwdz);
+
+        if (solverChoice.use_pdvwork){
+
+            const Real pgm1 = Gamma - 1.0;
+
+            ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+            {
+
+                Real rho_x_face = 0.5 * (cell_data(i-1,j,k,Rho_comp) + cell_data(i,j,k,Rho_comp));
+                Real rho_y_face = 0.5 * (cell_data(i,j-1,k,Rho_comp) + cell_data(i,j,k,Rho_comp));
+                Real rho_z_face = 0.5 * (cell_data(i,j,k-1,Rho_comp) + cell_data(i,j,k,Rho_comp));
+
+                Real u = xmom_arr(i,j,k) / rho_x_face;
+                Real v = ymom_arr(i,j,k) / rho_y_face;
+                Real w = zmom_arr(i,j,k) / rho_z_face;
+
+                Real rho_x_face_p1 = 0.5 * (cell_data(i,j,k,Rho_comp) + cell_data(i+1,j,k,Rho_comp));
+                Real rho_y_face_p1 = 0.5 * (cell_data(i,j,k,Rho_comp) + cell_data(i,j+1,k,Rho_comp));
+                Real rho_z_face_p1 = 0.5 * (cell_data(i,j,k,Rho_comp) + cell_data(i,j,k+1,Rho_comp));
+
+                Real u_p1 = xmom_arr(i+1,j,k) / rho_x_face_p1;
+                Real v_p1 = ymom_arr(i,j+1,k) / rho_y_face_p1;
+                Real w_p1 = zmom_arr(i,j,k+1) / rho_z_face_p1;
+
+                Real dudx = ( u_p1 - u ) * dxInv[0];
+                Real dvdy = ( v_p1 - v ) * dxInv[1];
+                Real dwdz = ( w_p1 - w ) * dxInv[2];
+
+                cell_src(i, j, k, RhoTheta_comp) -= cell_data(i,j,k,RhoTheta_comp) * (Gamma - 1.0) * ( dudx + dvdy + dwdz );
+            });
+        }
 
     } // mfi
     } // OMP
