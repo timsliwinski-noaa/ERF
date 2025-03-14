@@ -83,7 +83,8 @@ amrex::Real getThgivenRandT(const amrex::Real rho, const amrex::Real T, const am
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 amrex::Real getPgivenRTh(const amrex::Real rhotheta, const amrex::Real qv = 0.)
 {
-    return p_0 * std::pow(R_d * rhotheta * ( amrex::Real(1.0) + (R_v/R_d)*qv) * ip_0, Gamma);
+    //return p_0 * std::pow(R_d * rhotheta * ( amrex::Real(1.0) + (R_v/R_d)*qv) * ip_0, Gamma);
+    return rhotheta * (Gamma - 1.0);
 }
 
 /**
@@ -177,7 +178,8 @@ amrex::Real getRhoThetagivenP(const amrex::Real p, const amrex::Real qv=0.0)
     // diagnostic relation for the full pressure
     // see https://erf.readthedocs.io/en/latest/theory/NavierStokesEquations.html
     // For cases with moisture, theta = theta_m / (1 + R_v/R_d*qv)
-    return std::pow(p*std::pow(p_0, Gamma-1), iGamma) * iR_d / (1.0 + R_v/R_d*qv) ;
+//    return std::pow(p*std::pow(p_0, Gamma-1), iGamma) * iR_d / (1.0 + R_v/R_d*qv) ;
+    return p*(1.0/(Gamma-1.0));
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
