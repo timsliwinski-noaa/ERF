@@ -1,0 +1,12 @@
+COMPI Turbulence Anisotropy Experiment
+Timothy Sliwinski
+CIRA / CSU / NOAA GSL
+
+This experiment is the basis for the finite-differencing component of the COMPI 
+project, where COMPI's goals are to COMPare Invariants between models with 
+different numerical schemes for turbulent flows.
+
+At the core of this experiment is a Taylor Green vortex configuration with 
+varying grid anisotropy.
+
+
