@@ -28,4 +28,5 @@ cmake*ser*
 cmake*par*
 .idea
 *.ipynb
+!GenFETaylorGreenICs-wrfinput.ipynb
 wrfinput*.nc
