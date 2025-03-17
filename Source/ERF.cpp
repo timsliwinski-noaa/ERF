@@ -412,9 +412,8 @@ ERF::Evolve ()
     for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
     {
         if (use_datetime) {
-            Print() << "\n" << getTimestamp(static_cast<std::time_t>(cur_time),
-                                            datetime_format)
-                    << "  (" << cur_time-start_time << " s elapsed)"
+            Print() << "\n" << getTimestamp(cur_time, datetime_format)
+                    << " (" << cur_time-start_time << " s elapsed)"
                     << std::endl;
         }
         Print() << "\nCoarse STEP " << step+1 << " starts ..." << std::endl;
@@ -446,6 +445,10 @@ ERF::Evolve ()
             last_plot_file_step_2 = step+1;
             WritePlotFile(2,plotfile_type_2,plot_var_names_2);
         }
+        if (writeNow(cur_time, dt[0], step+1, m_subvol_int, m_subvol_per)) {
+            last_subvol = step+1;
+            WriteSubvolume();
+        }
 
         if (writeNow(cur_time, dt[0], step+1, m_check_int, m_check_per)) {
             last_check_file_step = step+1;
@@ -476,6 +479,9 @@ ERF::Evolve ()
     }
     if ( (m_plot_int_2 > 0 || m_plot_per_2 > 0.) && istep[0] > last_plot_file_step_2) {
         WritePlotFile(2,plotfile_type_1,plot_var_names_2);
+    }
+    if ( (m_subvol_int > 0 || m_subvol_per > 0.) && istep[0] > last_subvol) {
+        WriteSubvolume();
     }
 
     if ( (m_check_int > 0 || m_check_per > 0.) && istep[0] > last_check_file_step) {
@@ -932,11 +938,11 @@ ERF::InitData_post ()
     }
 #endif
 
-        (*physbcs_cons[lev])(lev_new[Vars::cons],0,ncomp_cons,
+        (*physbcs_cons[lev])(lev_new[Vars::cons],lev_new[Vars::xvel],lev_new[Vars::yvel],0,ncomp_cons,
                              ngvect_cons,t_new[lev],BCVars::cons_bc,do_fb);
-        (   *physbcs_u[lev])(lev_new[Vars::xvel],0,1         ,
+        (   *physbcs_u[lev])(lev_new[Vars::xvel],lev_new[Vars::xvel],lev_new[Vars::yvel],
                              ngvect_vels,t_new[lev],BCVars::xvel_bc,do_fb);
-        (   *physbcs_v[lev])(lev_new[Vars::yvel],0,1         ,
+        (   *physbcs_v[lev])(lev_new[Vars::yvel],lev_new[Vars::xvel],lev_new[Vars::yvel],
                              ngvect_vels,t_new[lev],BCVars::yvel_bc,do_fb);
         (   *physbcs_w[lev])(lev_new[Vars::zvel],lev_new[Vars::xvel],lev_new[Vars::yvel],
                              ngvect_vels,t_new[lev],BCVars::zvel_bc,do_fb);
@@ -1164,6 +1170,10 @@ ERF::InitData_post ()
         {
             WritePlotFile(2,plotfile_type_2,plot_var_names_2);
             last_plot_file_step_2 = istep[0];
+        }
+        if (m_subvol_int > 0 || m_subvol_per > 0.) {
+            WriteSubvolume();
+            last_subvol = istep[0];
         }
     }
 
@@ -1408,6 +1418,15 @@ ERF::init_only (int lev, Real time)
         // The base state is initialized from WRF wrfinput data, output by
         // ideal.exe or real.exe
         init_from_wrfinput(lev);
+        if (lev==0) {
+            if ((start_time > 0) && (start_time != t_new[lev])) {
+                Print() << "Ignoring specified start_time="
+                        << std::setprecision(timeprecision) << start_time
+                        << std::endl;
+            }
+            start_time = t_new[lev];
+        }
+        use_datetime = true;
 
         // The physbc's need the terrain but are needed for initHSE
         if (!solverChoice.use_real_bcs) {
@@ -1481,7 +1500,6 @@ ERF::ReadParameters ()
 
         std::string start_datetime, stop_datetime;
         if (pp.query("start_datetime", start_datetime)) {
-            // Both start and stop datetimes must be provided
             start_time = getEpochTime(start_datetime, datetime_format);
             if (pp.query("stop_datetime", stop_datetime)) {
                 stop_time = getEpochTime(stop_datetime, datetime_format);
@@ -1653,6 +1671,10 @@ ERF::ReadParameters ()
         pp.query("plot_int_2" , m_plot_int_2);
         pp.query("plot_per_1",  m_plot_per_1);
         pp.query("plot_per_2",  m_plot_per_2);
+
+        pp.query("subvol_file",   subvol_file);
+        pp.query("subvol_int" , m_subvol_int);
+        pp.query("subvol_per" , m_subvol_per);
 
         pp.query("expand_plotvars_to_unif_rr",m_expand_plotvars_to_unif_rr);
 
