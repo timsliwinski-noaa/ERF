@@ -43,7 +43,7 @@ erf.Pr_t = 1e25         #1e6
 # INITIALIZATION
 erf.init_type = "wrfinput"
 erf.use_real_bcs = false
-erf.nc_init_file = "wrfinput_TaylorGreen_256x256x128.nc"
+erf.nc_init_file_0 = "wrfinput_TaylorGreen_256x256x128.nc"
 
 #erf.terrain_type = "StaticFittedMesh"
 #erf.moisture_model = "Kessler"
