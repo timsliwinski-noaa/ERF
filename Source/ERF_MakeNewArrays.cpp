@@ -467,7 +467,10 @@ ERF::update_diffusive_arrays (int lev, const BoxArray& ba, const DistributionMap
 void
 ERF::init_zphys (int lev, Real time)
 {
-    if (solverChoice.init_type != InitType::WRFInput && solverChoice.init_type != InitType::Metgrid)
+    // HACK HACK HACK
+    // if (solverChoice.init_type != InitType::WRFInput && solverChoice.init_type != InitType::Metgrid)
+    if ( (solverChoice.init_type != InitType::WRFInput && solverChoice.init_type != InitType::Metgrid) ||
+         (solverChoice.init_type == InitType::WRFInput && solverChoice.terrain_type == TerrainType::None) )
     {
         if (lev > 0) {
             //

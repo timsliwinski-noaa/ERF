@@ -205,16 +205,22 @@ struct SolverChoice {
             use_real_bcs = ( (init_type == InitType::WRFInput) || (init_type == InitType::Metgrid) );
         }
 
+        // HACK HACK HACK
+#if 0
         if ( (init_type == InitType::WRFInput) || (init_type == InitType::Metgrid) ) {
             if (terrain_type != TerrainType::StaticFittedMesh) {
                 amrex::Abort("Only terrain_type = StaticFittedMesh are allowed with init_type = WRFInput or Metgrid");
             }
         }
+#endif
 
         if (init_type == InitType::WRFInput) {
+        // HACK HACK HACK
+#if 0
             if (moisture_type == MoistureType::None) {
                 amrex::Abort("Can't have moisture_type = None with init_type = WRFInput");
             }
+#endif
 
             // NetCDF wrfbdy lateral boundary file
             std::string nc_bdy_file_temp_string;
