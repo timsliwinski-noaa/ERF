@@ -9,6 +9,7 @@ geometry.is_periodic = 1 1 1  # periodic for all boundaries
 
 # TIME STEP CONTROL
 erf.fixed_dt           = 1e-3    # fixed time step = 0.001 seconds
+erf.substepping_type   = "None"
 
 # DIAGNOSTICS & VERBOSITY
 erf.sum_interval   = 1       # timesteps between computing mass
