@@ -220,7 +220,8 @@ void ReadNetCDFFile (const std::string& fname, amrex::Vector<std::string> names,
             if (success[n] == 1) {
 
                 std::vector<std::string> dimnames = ncf.var(vname_to_read).dimnames();
-                AMREX_ALWAYS_ASSERT(dimnames[0] == "Time");
+
+                AMREX_ALWAYS_ASSERT((dimnames[0] == "Time") || (dimnames[0] == "time"));
 
                 std::vector<size_t> shape = ncf.var(vname_to_read).shape();
                 arrays[n]                 = NDArray<DType>(vname_to_read,shape);

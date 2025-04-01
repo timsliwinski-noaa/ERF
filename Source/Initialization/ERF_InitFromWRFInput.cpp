@@ -100,7 +100,7 @@ ERF::init_from_wrfinput (int lev)
     NC_names.push_back("U");         // 2
     NC_names.push_back("V");         // 3
     NC_names.push_back("W");         // 4
-    NC_names.push_back("THM");       // 5
+    NC_names.push_back("T");         // 5
     NC_names.push_back("PH");        // 6
     NC_names.push_back("PHB");       // 7
     NC_names.push_back("PB");        // 8
@@ -201,7 +201,7 @@ ERF::init_from_wrfinput (int lev)
             if ( var_name == "U"      ||
                  var_name == "V"      ||
                  var_name == "W"      ||
-                 var_name == "THM"    ||
+                 var_name == "T"      ||
                  var_name == "QVAPOR" ||
                  var_name == "QCLOUD" ||
                  var_name == "QRAIN" ) {
@@ -225,7 +225,7 @@ ERF::init_from_wrfinput (int lev)
                     cur_fab  = &lev_new[Vars::yvel][mfi];
                   } else if (var_name == "W") {
                     cur_fab  = &lev_new[Vars::zvel][mfi];
-                  } else if (var_name == "THM") {
+                  } else if (var_name == "T") {
                     const Real theta_ref = 300.0;
                     var_fab.template plus<RunOn::Device>(theta_ref);
                     cur_fab  = &lev_new[Vars::cons][mfi];
