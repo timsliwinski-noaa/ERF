@@ -198,12 +198,12 @@ ERF::writeNCPlotFile (int lev, int which_subdomain, const std::string& dir,
             RealBox gridloc = RealBox(grids[lev][i], geom[lev].CellSize(), geom[lev].ProbLo());
 
             x_grid.clear(); y_grid.clear(); z_grid.clear();
-            for (auto k1 = 0; k1 < grids[lev][i].length(0); ++k1) {
+            for (auto k3 = 0; k3 < grids[lev][i].length(2); ++k3) {
               for (auto k2 = 0; k2 < grids[lev][i].length(1); ++k2) {
-                 for (auto k3 = 0; k3 < grids[lev][i].length(2); ++k3) {
-                    x_grid.push_back(gridloc.lo(0)+geom[lev].CellSize(0)*static_cast<Real>(k1));
-                    y_grid.push_back(gridloc.lo(1)+geom[lev].CellSize(1)*static_cast<Real>(k2));
-                    z_grid.push_back(gridloc.lo(2)+geom[lev].CellSize(2)*static_cast<Real>(k3));
+                 for (auto k1 = 0; k1 < grids[lev][i].length(0); ++k1) {
+                    x_grid.push_back(gridloc.lo(0)+geom[lev].CellSize(0)*(static_cast<Real>(k1)+0.5));
+                    y_grid.push_back(gridloc.lo(1)+geom[lev].CellSize(1)*(static_cast<Real>(k2)+0.5));
+                    z_grid.push_back(gridloc.lo(2)+geom[lev].CellSize(2)*(static_cast<Real>(k3)+0.5));
                  }
               }
             }
@@ -231,17 +231,31 @@ ERF::writeNCPlotFile (int lev, int which_subdomain, const std::string& dir,
 
    for (MFIter fai(*plotMF[lev]); fai.isValid(); ++fai) {
        auto box = fai.validbox();
+       const int i = fai.index();
        if (subdomain.contains(box)) {
            numpts = box.numPts();
            long unsigned diff = nfai*numpts;
            for(auto ip = 1; ip <= iproc; ++ip) diff += offset[ip-1];
 
            for (int k(0); k < ncomp; ++k) {
-              const auto *data = plotMF[lev]->get(fai).dataPtr(k);
               auto nc_plot_var = ncf.var(plot_var_names[k]);
               nc_plot_var.par_access(NC_INDEPENDENT);
-              nc_plot_var.put(data, {diff}, {numpts});
-           }
+              const auto *data = plotMF[lev]->get(fai).dataPtr(k);
+//            nc_plot_var.put(data, {diff}, {numpts});
+
+              std::vector<Real> temp_data;
+              temp_data.clear();
+              int n = 0;
+              for (auto k1 = 0; k1 < grids[lev][i].length(0); ++k1) {
+                for (auto k2 = 0; k2 < grids[lev][i].length(1); ++k2) {
+                 for (auto k3 = 0; k3 < grids[lev][i].length(2); ++k3) {
+                    temp_data.push_back(data[n]);
+                    n++;
+                 }
+                }
+              }
+              nc_plot_var.put(temp_data.data(), {diff}, {numpts});
+           } // k
            nfai++;
        }
    }
