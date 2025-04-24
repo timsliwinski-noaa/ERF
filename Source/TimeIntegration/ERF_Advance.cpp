@@ -64,32 +64,29 @@ ERF::Advance (int lev, Real time, Real dt_lev, int iteration, int /*ncycle*/)
                        Geom(lev).Domain(),
                        domain_bcs_type);
 
-    // TODO: Can test on multiple levels later
     // Update the inflow perturbation update time and amplitude
-    if (lev == 0) {
-        if (solverChoice.pert_type == PerturbationType::Source ||
-            solverChoice.pert_type == PerturbationType::Direct)
-        {
-            turbPert.calc_tpi_update(lev, dt_lev, U_old, V_old, S_old);
-        }
+    if (solverChoice.pert_type == PerturbationType::Source ||
+        solverChoice.pert_type == PerturbationType::Direct)
+    {
+        turbPert.calc_tpi_update(lev, dt_lev, U_old, V_old, S_old);
+    }
 
-        // If PerturbationType::Direct is selected, directly add the computed perturbation
-        // on the conserved field
-        if (solverChoice.pert_type == PerturbationType::Direct)
-        {
-            auto m_ixtype = S_old.boxArray().ixType(); // Conserved term
-            for (MFIter mfi(S_old,TileNoZ()); mfi.isValid(); ++mfi) {
-                Box bx  = mfi.tilebox();
-                const Array4<Real> &cell_data  = S_old.array(mfi);
-                const Array4<const Real> &pert_cell = turbPert.pb_cell.array(mfi);
-                turbPert.apply_tpi(lev, bx, RhoTheta_comp, m_ixtype, cell_data, pert_cell);
-            }
+    // If PerturbationType::Direct is selected, directly add the computed perturbation
+    // on the conserved field
+    if (solverChoice.pert_type == PerturbationType::Direct)
+    {
+        auto m_ixtype = S_old.boxArray().ixType(); // Conserved term
+        for (MFIter mfi(S_old,TileNoZ()); mfi.isValid(); ++mfi) {
+            Box bx  = mfi.tilebox();
+            const Array4<Real> &cell_data  = S_old.array(mfi);
+            const Array4<const Real> &pert_cell = turbPert.pb_cell[lev].array(mfi);
+            turbPert.apply_tpi(lev, bx, RhoTheta_comp, m_ixtype, cell_data, pert_cell);
         }
     }
 
-    // configure ABLMost params if used MostWall boundary condition
-    if (phys_bc_type[Orientation(Direction::z,Orientation::low)] == ERF_BC::MOST) {
-        if (m_most) {
+    // configure SurfaceLayer params if needed
+    if (phys_bc_type[Orientation(Direction::z,Orientation::low)] == ERF_BC::surface_layer) {
+        if (m_SurfaceLayer) {
             IntVect ng = Theta_prim[lev]->nGrowVect();
             MultiFab::Copy(  *Theta_prim[lev], S_old, RhoTheta_comp, 0, 1, ng);
             MultiFab::Divide(*Theta_prim[lev], S_old, Rho_comp     , 0, 1, ng);
@@ -108,19 +105,20 @@ ERF::Advance (int lev, Real time, Real dt_lev, int iteration, int /*ncycle*/)
             }
             // NOTE: std::swap above causes the field ptrs to be out of date.
             //       Reassign the field ptrs for MAC avg computation.
-            m_most->update_mac_ptrs(lev, vars_old, Theta_prim, Qv_prim, Qr_prim);
-            m_most->update_pblh(lev, vars_old, z_phys_cc[lev].get(),
-                                solverChoice.RhoQv_comp,
-                                solverChoice.RhoQc_comp,
-                                solverChoice.RhoQr_comp);
-            m_most->update_fluxes(lev, time);
+            m_SurfaceLayer->update_mac_ptrs(lev, vars_old, Theta_prim, Qv_prim, Qr_prim);
+            m_SurfaceLayer->update_pblh(lev, vars_old, z_phys_cc[lev].get(),
+                                        solverChoice.RhoQv_comp,
+                                        solverChoice.RhoQc_comp,
+                                        solverChoice.RhoQr_comp);
+            m_SurfaceLayer->update_fluxes(lev, time);
         }
     }
 
 #if defined(ERF_USE_WINDFARM)
     if (solverChoice.windfarm_type != WindFarmType::None) {
         advance_windfarm(Geom(lev), dt_lev, S_old,
-                         U_old, V_old, W_old, vars_windfarm[lev], Nturb[lev], SMark[lev], time);
+                         U_old, V_old, W_old, vars_windfarm[lev],
+                         Nturb[lev], SMark[lev], time);
     }
 
 #endif
@@ -186,7 +184,7 @@ ERF::Advance (int lev, Real time, Real dt_lev, int iteration, int /*ncycle*/)
     // **************************************************************************************
     // Update the land surface model
     // **************************************************************************************
-    advance_lsm(lev, S_new, dt_lev);
+    advance_lsm(lev, S_new, U_new, V_new, dt_lev);
 
 #if defined(ERF_USE_RRTMGP)
     // **************************************************************************************

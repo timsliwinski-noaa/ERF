@@ -1,8 +1,8 @@
 #include "ERF.H"
 #include "ERF_Utils.H"
 
-#include <AMReX_MLMG.H>
-#include <AMReX_MLNodeLaplacian.H>
+#include "AMReX_MLMG.H"
+#include "AMReX_MLNodeLaplacian.H"
 
 using namespace amrex;
 
@@ -23,7 +23,7 @@ void ERF::poisson_wall_dist (int lev)
 
     bool havewall{false};
     Orientation zlo(Direction::z, Orientation::low);
-    if ( ( phys_bc_type[zlo] == ERF_BC::MOST                               ) ||
+    if ( ( phys_bc_type[zlo] == ERF_BC::surface_layer                      ) ||
          ( phys_bc_type[zlo] == ERF_BC::no_slip_wall                       ) )/*||
          ((phys_bc_type[zlo] == ERF_BC::slip_wall) && (dom_hi.z > dom_lo.z)) )*/
     {
@@ -234,7 +234,8 @@ void ERF::poisson_wall_dist (int lev)
     const Real abstol = solverChoice.poisson_abstol;
 
     Real sigma = 1.0;
-    MLNodeLaplacian mlpoisson(geom_tmp, ba_tmp, dm_tmp, info, {m_factory[lev].get()}, sigma);
+    Vector<EBFArrayBoxFactory const*> factory_vec = { &EBFactory(lev) };
+    MLNodeLaplacian mlpoisson(geom_tmp, ba_tmp, dm_tmp, info, factory_vec, sigma);
 
     mlpoisson.setDomainBC(bc3d_lo, bc3d_hi);
 

@@ -20,15 +20,6 @@ ERF::turbPert_update (const int lev, const Real local_dt)
     MultiFab xvel_data(lev_new[Vars::xvel], make_alias, 0, 1);
     MultiFab yvel_data(lev_new[Vars::yvel], make_alias, 0, 1);
 
-    // This logic is done once then stored within ERF_TurbPertStruct.H
-    turbPert.pt_type = -1;
-    if (solverChoice.pert_type == PerturbationType::Source) {
-        turbPert.pt_type = 0;
-    } else if (solverChoice.pert_type == PerturbationType::Direct) {
-        turbPert.pt_type = 1;
-    }
-    AMREX_ALWAYS_ASSERT(turbPert.pt_type >= 0);
-
     // Computing perturbation update time
     turbPert.calc_tpi_update(lev, local_dt, xvel_data, yvel_data, cons_data);
 
@@ -56,7 +47,7 @@ ERF::turbPert_amplitude (int lev)
     for (MFIter mfi(lev_new[Vars::cons], TileNoZ()); mfi.isValid(); ++mfi) {
         const Box &bx  = mfi.validbox();
         const auto &cons_pert_arr = cons_data.array(mfi); // Address of perturbation array
-        const amrex::Array4<const amrex::Real> &pert_cell = turbPert.pb_cell.array(mfi); // per-cell perturbation stored in structure
+        const amrex::Array4<const amrex::Real> &pert_cell = turbPert.pb_cell[lev].array(mfi); // per-cell perturbation stored in structure
 
         turbPert.apply_tpi(lev, bx, RhoTheta_comp, m_ixtype, cons_pert_arr, pert_cell);
     } // mfi

@@ -7,11 +7,13 @@
  * The routines here call common routines in ERF_MakeNewArrays.cpp
 */
 
-#include "ERF_ProbCommon.H"
-#include <ERF.H>
-#include <AMReX_buildInfo.H>
-#include <ERF_Utils.H>
 #include <memory>
+
+#include "AMReX_buildInfo.H"
+
+#include "ERF.H"
+#include "ERF_Utils.H"
+#include "ERF_ProbCommon.H"
 
 using namespace amrex;
 
@@ -56,11 +58,9 @@ void ERF::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba_in,
     if ( solverChoice.terrain_type == TerrainType::EB ||
          solverChoice.terrain_type == TerrainType::ImmersedForcing)
     {
-        m_factory[lev] = makeEBFabFactory(geom[lev], grids[lev], dmap[lev],
-                                          {nghost_eb_basic(),
-                                           nghost_eb_volume(),
-                                           nghost_eb_full()},
-                                           EBSupport::full);
+        const amrex::EB2::IndexSpace& ebis = amrex::EB2::IndexSpace::top();
+        const EB2::Level& eb_level = ebis.getLevel(geom[lev]);
+        eb[lev]->make_factory(lev, geom[lev], grids[lev], dmap[lev], eb_level);
     } else {
         // m_factory[lev] = std::make_unique<FabFactory<FArrayBox>>();
     }
@@ -335,17 +335,17 @@ ERF::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
     }
 
     // ********************************************************************************************
-    // Create the MOST arrays at this (new) level
+    // Create the SurfaceLayer arrays at this (new) level
     // ********************************************************************************************
-    if (phys_bc_type[Orientation(Direction::z,Orientation::low)] == ERF_BC::MOST) {
+    if (phys_bc_type[Orientation(Direction::z,Orientation::low)] == ERF_BC::surface_layer) {
         int nlevs = finest_level+1;
         Vector<MultiFab*> mfv_old = {&vars_old[lev][Vars::cons], &vars_old[lev][Vars::xvel],
                                      &vars_old[lev][Vars::yvel], &vars_old[lev][Vars::zvel]};
-        m_most->make_MOST_at_level(lev,nlevs,
-                                   mfv_old, Theta_prim[lev], Qv_prim[lev],
-                                   Qr_prim[lev], z_phys_nd[lev],
-                                   Hwave[lev].get(),Lwave[lev].get(),eddyDiffs_lev[lev].get(),
-                                   lsm_data[lev], lsm_flux[lev], sst_lev[lev], lmask_lev[lev]);
+        m_SurfaceLayer->make_SurfaceLayer_at_level(lev,nlevs,
+                                                   mfv_old, Theta_prim[lev], Qv_prim[lev],
+                                                   Qr_prim[lev], z_phys_nd[lev],
+                                                   Hwave[lev].get(), Lwave[lev].get(), eddyDiffs_lev[lev].get(),
+                                                   lsm_data[lev], lsm_flux[lev], sst_lev[lev], lmask_lev[lev]);
     }
 
 #ifdef ERF_USE_PARTICLES
@@ -376,7 +376,7 @@ ERF::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMapp
     int     ncomp_cons  = vars_new[lev][Vars::cons].nComp();
     IntVect ngrow_state = vars_new[lev][Vars::cons].nGrowVect();
 
-    int ngrow_vels  = ComputeGhostCells(solverChoice.advChoice, solverChoice.use_num_diff);
+    int ngrow_vels = ComputeGhostCells(solverChoice);
 
     Vector<MultiFab> temp_lev_new(Vars::NumTypes);
     Vector<MultiFab> temp_lev_old(Vars::NumTypes);
@@ -396,9 +396,9 @@ ERF::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMapp
     remake_zphys(lev, time, temp_zphys_nd);
     update_terrain_arrays(lev);
 
-    //
+    // ********************************************************************************************
     // Make sure that detJ and z_phys_cc are the average of the data on a finer level if there is one
-    //
+    // ********************************************************************************************
     if (SolverChoice::mesh_type != MeshType::ConstantDz) {
         for (int crse_lev = lev-1; crse_lev >= 0; crse_lev--) {
             average_down(  *detJ_cc[crse_lev+1],   *detJ_cc[crse_lev], 0, 1, refRatio(crse_lev));
@@ -520,17 +520,17 @@ ERF::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMapp
     }
 
     // ********************************************************************************************
-    // Update the MOST arrays at this level
+    // Update the SurfaceLayer arrays at this level
     // ********************************************************************************************
-    if (phys_bc_type[Orientation(Direction::z,Orientation::low)] == ERF_BC::MOST) {
+    if (phys_bc_type[Orientation(Direction::z,Orientation::low)] == ERF_BC::surface_layer) {
         int nlevs = finest_level+1;
         Vector<MultiFab*> mfv_old = {&vars_old[lev][Vars::cons], &vars_old[lev][Vars::xvel],
                                      &vars_old[lev][Vars::yvel], &vars_old[lev][Vars::zvel]};
-        m_most->make_MOST_at_level(lev,nlevs,
-                                   mfv_old, Theta_prim[lev], Qv_prim[lev],
-                                   Qr_prim[lev], z_phys_nd[lev],
-                                   Hwave[lev].get(),Lwave[lev].get(),eddyDiffs_lev[lev].get(),
-                                   lsm_data[lev], lsm_flux[lev], sst_lev[lev], lmask_lev[lev]);
+        m_SurfaceLayer->make_SurfaceLayer_at_level(lev,nlevs,
+                                                   mfv_old, Theta_prim[lev], Qv_prim[lev],
+                                                   Qr_prim[lev], z_phys_nd[lev],
+                                                   Hwave[lev].get(),Lwave[lev].get(),eddyDiffs_lev[lev].get(),
+                                                   lsm_data[lev], lsm_flux[lev], sst_lev[lev], lmask_lev[lev]);
     }
 
     // These calls are done in AmrCore::regrid if this is a regrid at lev > 0

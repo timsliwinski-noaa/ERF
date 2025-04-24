@@ -61,11 +61,8 @@ void make_sources (int level,
     const bool l_use_ndiff      = solverChoice.use_num_diff;
 
     TurbChoice tc = solverChoice.turbChoice[level];
-    const bool l_use_KE  =  ( (tc.les_type  == LESType::Deardorff) ||
-                              (tc.rans_type == RANSType::kEqn) ||
-                              (tc.pbl_type  == PBLType::MYNN25) ||
-                              (tc.pbl_type  == PBLType::MYNNEDMF) );
-    const bool l_diff_KE = tc.diffuse_KE_3D;
+    const bool l_use_KE  = tc.use_tke;
+    const bool l_diff_KE = tc.diffuse_tke_3D;
 
     const Box& domain = geom.Domain();
 
@@ -371,7 +368,7 @@ void make_sources (int level,
         // *************************************************************************************
         if (solverChoice.pert_type == PerturbationType::Source) {
             auto m_ixtype = S_data[IntVars::cons].boxArray().ixType(); // Conserved term
-            const amrex::Array4<const amrex::Real>& pert_cell = turbPert.pb_cell.const_array(mfi);
+            const amrex::Array4<const amrex::Real>& pert_cell = turbPert.pb_cell[level].const_array(mfi);
             turbPert.apply_tpi(level, bx, RhoTheta_comp, m_ixtype, cell_src, pert_cell); // Applied as source term
         }
 

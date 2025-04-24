@@ -634,6 +634,14 @@ List of Parameters
 | **erf.data_log**              | Output           | Up to four     | NONE           |
 |                               | filename(s)      | strings        |                |
 +-------------------------------+------------------+----------------+----------------+
+| **erf.der_data_log**          | Output           | Up to four     | NONE           |
+|                               | filename(s) for  | strings        |                |
+|                               | derived data     |                |                |
++-------------------------------+------------------+----------------+----------------+
+| **erf.energy_data_log**       | Output           | Up to four     | NONE           |
+|                               | filename(s) for  | strings        |                |
+|                               | total energy     |                |                |
++-------------------------------+------------------+----------------+----------------+
 | **erf.profile_int**           | Interval (number)| Integer        | -1             |
 |                               | of steps between |                |                |
 |                               | outputs          |                |                |
@@ -1169,6 +1177,10 @@ List of Parameters
 | **erf.use_coriolis**                | Include Coriolis       | true / false      | false               |
 |                                     | forcing                |                   |                     |
 +-------------------------------------+------------------------+-------------------+---------------------+
+| **erf.variable_coriolis**           | Include Coriolis       | true / false      | false               |
+|                                     | forcing that varies    |                   |                     |
+|                                     | with latitude          |                   |                     |
++-------------------------------------+------------------------+-------------------+---------------------+
 | **erf.rotational_time_period**      | Used to calculate the  | Real              | 86400.0             |
 |                                     | Coriolis frequency     |                   |                     |
 +-------------------------------------+------------------------+-------------------+---------------------+
@@ -1576,6 +1588,8 @@ List of Parameters
 | **erf.moisture_model**      | Name of moisture model   |  "None", "SAM",       | "None"     |
 |                             |                          |  "Kessler", "SatAdj"  |            |
 |                             |                          |  "Kessler_NoRain",    |            |
+|                             |                          |  "Morrison",          |            |
+|                             |                          |  "Morrison_NoIce",    |            |
 |                             |                          |  "SAM_NoPrecip_NoIce",|            |
 |                             |                          |  "SAM_NoIce"          |            |
 +-----------------------------+--------------------------+-----------------------+------------+
