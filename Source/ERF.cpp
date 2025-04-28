@@ -264,6 +264,7 @@ ERF::ERF_shared ()
 
     // Sea surface temps
     sst_lev.resize(nlevs_max);
+    tsk_lev.resize(nlevs_max);
     lmask_lev.resize(nlevs_max);
 
     // Metric terms
@@ -1090,7 +1091,8 @@ ERF::InitData_post ()
                                                        mfv_old, Theta_prim[lev], Qv_prim[lev],
                                                        Qr_prim[lev], z_phys_nd[lev],
                                                        Hwave[lev].get(),Lwave[lev].get(),eddyDiffs_lev[lev].get(),
-                                                       lsm_data[lev], lsm_flux[lev], sst_lev[lev], lmask_lev[lev]);
+                                                       lsm_data[lev], lsm_flux[lev], sst_lev[lev],
+                                                       tsk_lev[lev], lmask_lev[lev]);
         }
 
 
@@ -1443,22 +1445,11 @@ ERF::init_only (int lev, Real time)
     }
     else if (solverChoice.init_type == InitType::NCFile)
     {
-        // The base state is initialized by reading from a Netcdf file
-        init_from_wrfinput(lev);
-        if (lev==0) {
-            if ((start_time > 0) && (start_time != t_new[lev])) {
-                Print() << "Ignoring specified start_time="
-                        << std::setprecision(timeprecision) << start_time
-                        << std::endl;
-            }
-            start_time = t_new[lev];
-        }
-        use_datetime = true;
+        // The state is initialized by reading from a Netcdf file
+        init_from_ncfile(lev);
 
         // The physbc's need the terrain but are needed for initHSE
-        if (!solverChoice.use_real_bcs) {
-            make_physbcs(lev);
-        }
+        make_physbcs(lev);
     }
     else if (solverChoice.init_type == InitType::Metgrid)
     {
@@ -1495,7 +1486,9 @@ ERF::init_only (int lev, Real time)
     // - This may modify the base state
     // - The fields set by init_custom_pert are **perturbations** to the
     //   background flow set based on init_type
-    init_custom(lev);
+    if (solverChoice.init_type != InitType::NCFile) {
+        init_custom(lev);
+    }
 
     // Ensure that the face-based data are the same on both sides of a periodic domain.
     // The data associated with the lower grid ID is considered the correct value.

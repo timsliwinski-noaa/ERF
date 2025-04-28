@@ -323,9 +323,6 @@ struct SolverChoice {
         pp.query("has_lat_lon", has_lat_lon);
         pp.query("variable_coriolis", variable_coriolis);
 
-        // Do we have SST
-        pp.query("has_SST", has_SST);
-
         // Include Rayleigh damping (separate flags for each variable)
         pp.query("rayleigh_damp_U", rayleigh_damp_U);
         pp.query("rayleigh_damp_V", rayleigh_damp_V);
@@ -767,8 +764,6 @@ struct SolverChoice {
 
     bool has_lat_lon{false};
     bool variable_coriolis{false};
-
-    bool has_SST{false};
 
     int ave_plane {2};
 
