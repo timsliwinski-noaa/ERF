@@ -47,6 +47,7 @@ function(build_erf_lib erf_lib_name)
                    ${SRC_DIR}/IO/ERF_ReadFromMetgrid.cpp
                    ${SRC_DIR}/IO/ERF_ReadFromWRFBdy.cpp
                    ${SRC_DIR}/IO/ERF_ReadFromWRFInput.cpp
+                   ${SRC_DIR}/IO/ERF_ReadFromWRFLow.cpp
                    ${SRC_DIR}/IO/ERF_NCColumnFile.cpp)
     target_compile_definitions(${erf_lib_name} PUBLIC ERF_USE_NETCDF)
   endif()
@@ -202,6 +203,7 @@ function(build_erf_lib erf_lib_name)
        ${SRC_DIR}/SourceTerms/ERF_ApplySpongeZoneBCs_ReadFromFile.cpp
        ${SRC_DIR}/SourceTerms/ERF_MakeBuoyancy.cpp
        ${SRC_DIR}/SourceTerms/ERF_AddThinBodySources.cpp
+       ${SRC_DIR}/SourceTerms/ERF_MakeGradP.cpp
        ${SRC_DIR}/SourceTerms/ERF_MakeMomSources.cpp
        ${SRC_DIR}/SourceTerms/ERF_MakeSources.cpp
        ${SRC_DIR}/SourceTerms/ERF_MoistSetRhs.cpp

@@ -11,23 +11,19 @@ using namespace amrex;
 
 void erf_make_tau_terms (int level, int nrk,
                          const Vector<BCRec>& domain_bcs_type_h,
-                         std::unique_ptr<MultiFab>& z_phys_nd,
+                         const MultiFab& z_phys_nd,
                          Vector<MultiFab>& S_data,
                          const MultiFab& xvel,
                          const MultiFab& yvel,
                          const MultiFab& zvel,
-                         MultiFab* Tau11, MultiFab* Tau22, MultiFab* Tau33,
-                         MultiFab* Tau12, MultiFab* Tau13, MultiFab* Tau21,
-                         MultiFab* Tau23, MultiFab* Tau31, MultiFab* Tau32,
+                         Vector<std::unique_ptr<MultiFab>>& Tau_lev,
                          MultiFab* SmnSmn,
                          MultiFab* eddyDiffs,
                          const Geometry geom,
                          const SolverChoice& solverChoice,
                          std::unique_ptr<SurfaceLayer>& /*SurfLayer*/,
-                         std::unique_ptr<MultiFab>& detJ,
-                         std::unique_ptr<MultiFab>& mapfac_m,
-                         std::unique_ptr<MultiFab>& mapfac_u,
-                         std::unique_ptr<MultiFab>& mapfac_v)
+                         const MultiFab& detJ,
+                         Vector<std::unique_ptr<MultiFab>>& mapfac)
 {
     BL_PROFILE_REGION("erf_make_tau_terms()");
 
@@ -90,17 +86,22 @@ void erf_make_tau_terms (int level, int nrk,
             const Array4<const Real> & w = zvel.array(mfi);
 
             // Map factors
-            const Array4<const Real>& mf_m   = mapfac_m->const_array(mfi);
-            const Array4<const Real>& mf_u   = mapfac_u->const_array(mfi);
-            const Array4<const Real>& mf_v   = mapfac_v->const_array(mfi);
+            const Array4<const Real>& mf_mx  = mapfac[MapFacType::m_x]->const_array(mfi);
+            const Array4<const Real>& mf_ux  = mapfac[MapFacType::u_x]->const_array(mfi);
+            const Array4<const Real>& mf_vx  = mapfac[MapFacType::v_x]->const_array(mfi);
+            const Array4<const Real>& mf_my  = mapfac[MapFacType::m_y]->const_array(mfi);
+            const Array4<const Real>& mf_uy  = mapfac[MapFacType::u_y]->const_array(mfi);
+            const Array4<const Real>& mf_vy  = mapfac[MapFacType::v_y]->const_array(mfi);
 
             // Eddy viscosity
-            const Array4<Real const>& mu_turb = l_use_turb ? eddyDiffs->const_array(mfi) : Array4<const Real>{};
-            const Array4<Real const>& cell_data = l_use_constAlpha ? S_data[IntVars::cons].const_array(mfi) : Array4<const Real>{};
+            const Array4<Real const>& mu_turb   = l_use_turb       ? eddyDiffs->const_array(mfi) :
+                                                                     Array4<const Real>{};
+            const Array4<Real const>& cell_data = l_use_constAlpha ? S_data[IntVars::cons].const_array(mfi) :
+                                                                     Array4<const Real>{};
 
             // Terrain metrics
-            const Array4<const Real>& z_nd     = z_phys_nd->const_array(mfi);
-            const Array4<const Real>& detJ_arr = detJ->const_array(mfi);
+            const Array4<const Real>& z_nd     = z_phys_nd.const_array(mfi);
+            const Array4<const Real>& detJ_arr = detJ.const_array(mfi);
 
             //-------------------------------------------------------------------------------
             // NOTE: Tile boxes with terrain are not intuitive. The linear combination of
@@ -156,8 +157,9 @@ void erf_make_tau_terms (int level, int nrk,
             Array4<Real> s12 = S12.array();  Array4<Real> s13 = S13.array();  Array4<Real> s23 = S23.array();
 
             // Symmetric strain/stresses
-            Array4<Real> tau11 = Tau11->array(mfi); Array4<Real> tau22 = Tau22->array(mfi); Array4<Real> tau33 = Tau33->array(mfi);
-            Array4<Real> tau12 = Tau12->array(mfi); Array4<Real> tau13 = Tau13->array(mfi); Array4<Real> tau23 = Tau23->array(mfi);
+            Array4<Real> tau11 = Tau_lev[TauType::tau11]->array(mfi); Array4<Real> tau22 = Tau_lev[TauType::tau22]->array(mfi);
+            Array4<Real> tau33 = Tau_lev[TauType::tau33]->array(mfi); Array4<Real> tau12 = Tau_lev[TauType::tau12]->array(mfi);
+            Array4<Real> tau13 = Tau_lev[TauType::tau13]->array(mfi); Array4<Real> tau23 = Tau_lev[TauType::tau23]->array(mfi);
 
             // Strain magnitude
             Array4<Real> SmnSmn_a;
@@ -167,7 +169,9 @@ void erf_make_tau_terms (int level, int nrk,
                 FArrayBox S21,S31,S32;
                 S21.resize(tbxxy,1,The_Async_Arena()); S31.resize(tbxxz,1,The_Async_Arena()); S32.resize(tbxyz,1,The_Async_Arena());
                 Array4<Real> s21   = S21.array();       Array4<Real> s31   = S31.array();       Array4<Real> s32   = S32.array();
-                Array4<Real> tau21 = Tau21->array(mfi); Array4<Real> tau31 = Tau31->array(mfi); Array4<Real> tau32 = Tau32->array(mfi);
+                Array4<Real> tau21 = Tau_lev[TauType::tau21]->array(mfi);
+                Array4<Real> tau31 = Tau_lev[TauType::tau31]->array(mfi);
+                Array4<Real> tau32 = Tau_lev[TauType::tau32]->array(mfi);
 
 
                 // *****************************************************************************
@@ -186,7 +190,8 @@ void erf_make_tau_terms (int level, int nrk,
                 Array4<Real> omega_arr = Omega.array();
                 ParallelFor(gbxo, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
-                    omega_arr(i,j,k) = (k == 0) ? 0. : OmegaFromW(i,j,k,w(i,j,k),u,v,z_nd,dxInv);
+                    omega_arr(i,j,k) = (k == 0) ? 0. : OmegaFromW(i,j,k,w(i,j,k),u,v,
+                                                                  mf_ux,mf_vy,z_nd,dxInv);
                 });
 
                 ParallelFor(bxcc, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -201,10 +206,10 @@ void erf_make_tau_terms (int level, int nrk,
                     Real Omega_hi = omega_arr(i,j,k+1);
                     Real Omega_lo = omega_arr(i,j,k  );
 
-                    Real mfsq = mf_m(i,j,0)*mf_m(i,j,0);
+                    Real mfsq = mf_mx(i,j,0)*mf_my(i,j,0);
 
-                    Real expansionRate = (u(i+1,j  ,k)/mf_u(i+1,j,0)*met_u_h_zeta_hi - u(i,j,k)/mf_u(i,j,0)*met_u_h_zeta_lo)*dxInv[0]*mfsq +
-                                         (v(i  ,j+1,k)/mf_v(i,j+1,0)*met_v_h_zeta_hi - v(i,j,k)/mf_v(i,j,0)*met_v_h_zeta_lo)*dxInv[1]*mfsq +
+                    Real expansionRate = (u(i+1,j  ,k)/mf_uy(i+1,j,0)*met_u_h_zeta_hi - u(i,j,k)/mf_uy(i,j,0)*met_u_h_zeta_lo)*dxInv[0]*mfsq +
+                                         (v(i  ,j+1,k)/mf_vx(i,j+1,0)*met_v_h_zeta_hi - v(i,j,k)/mf_vx(i,j,0)*met_v_h_zeta_lo)*dxInv[1]*mfsq +
                                          (Omega_hi - Omega_lo)*dxInv[2];
 
                     er_arr(i,j,k) = expansionRate / detJ_arr(i,j,k);
@@ -223,7 +228,8 @@ void erf_make_tau_terms (int level, int nrk,
                                 s13, s31,
                                 s23, s32,
                                 z_nd, detJ_arr, bc_ptr_h, dxInv,
-                                mf_m, mf_u, mf_v);
+                                mf_mx, mf_ux, mf_vx,
+                                mf_my, mf_uy, mf_vy);
                 } // profile
 
                 // Populate SmnSmn if using Deardorff or k-eqn RANS (used as diff src in post)
@@ -305,9 +311,9 @@ void erf_make_tau_terms (int level, int nrk,
                 {
                 BL_PROFILE("slow_rhs_making_er_N");
                 ParallelFor(bxcc, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
-                    Real mfsq = mf_m(i,j,0)*mf_m(i,j,0);
-                    er_arr(i,j,k) = (u(i+1, j  , k  )/mf_u(i+1,j,0) - u(i, j, k)/mf_u(i,j,0))*dxInv[0]*mfsq +
-                                    (v(i  , j+1, k  )/mf_v(i,j+1,0) - v(i, j, k)/mf_v(i,j,0))*dxInv[1]*mfsq +
+                    Real mfsq = mf_mx(i,j,0)*mf_my(i,j,0);
+                    er_arr(i,j,k) = (u(i+1, j  , k  )/mf_uy(i+1,j,0) - u(i, j, k)/mf_uy(i,j,0))*dxInv[0]*mfsq +
+                                    (v(i  , j+1, k  )/mf_vx(i,j+1,0) - v(i, j, k)/mf_vx(i,j,0))*dxInv[1]*mfsq +
                                     (w(i  , j  , k+1) - w(i, j, k))*dxInv[2];
                 });
                 } // end profile
@@ -323,7 +329,8 @@ void erf_make_tau_terms (int level, int nrk,
                                 s11, s22, s33,
                                 s12, s13, s23,
                                 bc_ptr_h, dxInv,
-                                mf_m, mf_u, mf_v);
+                                mf_mx, mf_ux, mf_vx,
+                                mf_my, mf_uy, mf_vy);
                 } // end profile
 
                 // Populate SmnSmn if using Deardorff or k-eqn RANS (used as diff src in post)

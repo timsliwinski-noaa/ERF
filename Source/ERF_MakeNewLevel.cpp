@@ -43,10 +43,14 @@ void ERF::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba_in,
         dm = dm_in;
     }
 
+    // ********************************************************************************************
     // Define grids[lev] to be ba
+    // ********************************************************************************************
     SetBoxArray(lev, ba);
 
+    // ********************************************************************************************
     // Define dmap[lev] to be dm
+    // ********************************************************************************************
     SetDistributionMap(lev, dm);
 
     if (verbose) {
@@ -581,7 +585,7 @@ ERF::ClearLevel (int lev)
         zmom_crse_rhs[lev].clear();
     }
 
-    if (solverChoice.anelastic[lev] == 1) {
+    if (solverChoice.anelastic[lev] == 1 || solverChoice.project_initial_velocity) {
         pp_inc[lev].clear();
     }
 

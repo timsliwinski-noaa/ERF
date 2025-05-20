@@ -177,20 +177,29 @@ ERF::writeNCPlotFile (int lev, int which_subdomain, const std::string& dir,
     std::vector<Real> z_grid;
     long unsigned goffset = 0;
     long unsigned glen    = 0;
+
+    Real dx[AMREX_SPACEDIM];
+    for (int i = 0; i < AMREX_SPACEDIM; i++) {
+        dx[i] = geom[lev].CellSize()[i];
+    }
+
+    // *******************************************************************************
+    // NOTE: the (x,y,z) output here are for a mesh withOUT terrain-fitted coordinates
+    // *******************************************************************************
+    AMREX_ALWAYS_ASSERT(solverChoice.terrain_type != TerrainType::StaticFittedMesh);
     for (int i = 0; i < grids[lev].size(); ++i) {
         auto box = grids[lev][i];
         if (subdomain.contains(box)) {
             RealBox gridloc = RealBox(grids[lev][i], geom[lev].CellSize(), geom[lev].ProbLo());
-
             x_grid.clear(); y_grid.clear(); z_grid.clear();
             for (auto k3 = 0; k3 < grids[lev][i].length(2); ++k3) {
-              for (auto k2 = 0; k2 < grids[lev][i].length(1); ++k2) {
-                 for (auto k1 = 0; k1 < grids[lev][i].length(0); ++k1) {
-                    x_grid.push_back(gridloc.lo(0)+geom[lev].CellSize(0)*(static_cast<Real>(k1)+0.5));
-                    y_grid.push_back(gridloc.lo(1)+geom[lev].CellSize(1)*(static_cast<Real>(k2)+0.5));
-                    z_grid.push_back(gridloc.lo(2)+geom[lev].CellSize(2)*(static_cast<Real>(k3)+0.5));
-                 }
-              }
+                for (auto k2 = 0; k2 < grids[lev][i].length(1); ++k2) {
+                    for (auto k1 = 0; k1 < grids[lev][i].length(0); ++k1) {
+                        x_grid.push_back(gridloc.lo(0)+dx[0]*(static_cast<Real>(k1)+0.5));
+                        y_grid.push_back(gridloc.lo(1)+dx[1]*(static_cast<Real>(k2)+0.5));
+                        z_grid.push_back(gridloc.lo(2)+dx[2]*(static_cast<Real>(k3)+0.5));
+                     }
+                }
             }
 
             goffset += glen;
@@ -200,9 +209,9 @@ ERF::writeNCPlotFile (int lev, int which_subdomain, const std::string& dir,
             auto nc_y_grid = ncf.var("y_grid");
             auto nc_z_grid = ncf.var("z_grid");
 
-            nc_x_grid.par_access(NC_INDEPENDENT);
-            nc_y_grid.par_access(NC_INDEPENDENT);
-            nc_z_grid.par_access(NC_INDEPENDENT);
+            nc_x_grid.par_access(NC_COLLECTIVE);
+            nc_y_grid.par_access(NC_COLLECTIVE);
+            nc_z_grid.par_access(NC_COLLECTIVE);
 
             nc_x_grid.put(x_grid.data(), {goffset}, {glen});
             nc_y_grid.put(y_grid.data(), {goffset}, {glen});
@@ -232,11 +241,11 @@ ERF::writeNCPlotFile (int lev, int which_subdomain, const std::string& dir,
            for (int k(0); k < ncomp; ++k) {
                FArrayBox tmp;
                tmp.resize(bx, 1, amrex::The_Pinned_Arena());
-               tmp.template copy<RunOn::Device>((*plotMF[lev])[mfi.index()], 0, 0, 1);
+               tmp.template copy<RunOn::Device>((*plotMF[lev])[mfi.index()], k, 0, 1);
                Gpu::streamSynchronize();
 
                auto nc_plot_var = ncf.var(plot_var_names[k]);
-               nc_plot_var.par_access(NC_INDEPENDENT);
+               nc_plot_var.par_access(NC_COLLECTIVE);
                nc_plot_var.put(tmp.dataPtr(), {local_start_z,local_start_y,local_start_x},
                                               {local_nz, local_ny, local_nx});
            }
