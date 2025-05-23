@@ -194,6 +194,9 @@ void make_sources (int level,
         Box bx  = mfi.tilebox();
 
         const Array4<const Real>& cell_data  = S_data[IntVars::cons].array(mfi);
+        const Array4<const Real>& xmom_arr   = S_data[IntVars::xmom].array(mfi);
+        const Array4<const Real>& ymom_arr   = S_data[IntVars::ymom].array(mfi);
+        const Array4<const Real>& zmom_arr   = S_data[IntVars::zmom].array(mfi);
         const Array4<const Real>& cell_prim  = S_prim.array(mfi);
         const Array4<Real>      & cell_src   = source.array(mfi);
 
