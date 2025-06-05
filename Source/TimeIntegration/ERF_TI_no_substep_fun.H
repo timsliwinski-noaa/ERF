@@ -65,7 +65,7 @@
                     const Array4<const Real>& z_nd_new = z_phys_nd_new[level]->const_array(mfi);
 
                     const Array4<const Real>& mf_u = mapfac[level][MapFacType::u_x]->const_array(mfi);
-                    const Array4<const Real>& mf_v = mapfac[level][MapFacType::v_x]->const_array(mfi);
+                    const Array4<const Real>& mf_v = mapfac[level][MapFacType::v_y]->const_array(mfi);
 
                     const Array4<Real      >& z_t_arr  =  z_t_rk[level]->array(mfi);
 
@@ -296,9 +296,9 @@
         if (solverChoice.anelastic[level]) {
             bool have_tb = (thin_xforce[0] || thin_yforce[0] || thin_zforce[0]);
             if (have_tb) {
-                project_velocities_tb(level, slow_dt, S_sum);
+                project_velocity_tb(level, slow_dt, S_sum);
             } else {
-                project_velocities(level, slow_dt, S_sum);
+                project_momenta(level, slow_dt, S_sum);
             }
         }
     };

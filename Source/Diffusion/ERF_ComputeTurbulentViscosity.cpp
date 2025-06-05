@@ -71,7 +71,7 @@ void ComputeTurbulentViscosityLES (Vector<std::unique_ptr<MultiFab>>& Tau_lev,
             Array4<Real const> tau23 = Tau_lev[TauType::tau23]->array(mfi);
 
             Array4<Real const> mf_u = mapfac[MapFacType::u_x]->const_array(mfi);
-            Array4<Real const> mf_v = mapfac[MapFacType::v_x]->const_array(mfi);
+            Array4<Real const> mf_v = mapfac[MapFacType::v_y]->const_array(mfi);
 
             Array4<Real const> z_nd_arr = z_phys_nd->const_array(mfi);
 
@@ -151,7 +151,7 @@ void ComputeTurbulentViscosityLES (Vector<std::unique_ptr<MultiFab>>& Tau_lev,
             const Array4<Real const > &cell_data = cons_in.array(mfi);
 
             Array4<Real const> mf_u = mapfac[MapFacType::u_x]->const_array(mfi);
-            Array4<Real const> mf_v = mapfac[MapFacType::v_x]->const_array(mfi);
+            Array4<Real const> mf_v = mapfac[MapFacType::v_y]->const_array(mfi);
 
             Array4<Real const> z_nd_arr = z_phys_nd->const_array(mfi);
 
@@ -590,6 +590,12 @@ void ComputeTurbulentViscosity (const MultiFab& xvel , const MultiFab& yvel,
                                    solverChoice.RhoQr_comp);
     } else if (turbChoice.pbl_type == PBLType::YSU) {
         ComputeDiffusivityYSU(xvel, yvel, cons_in, eddyViscosity,
+                              geom, turbChoice, SurfLayer,
+                              use_terrain_fitted_coords, use_moisture,
+                              level, bc_ptr, vert_only, z_phys_nd);
+    }
+    else if (turbChoice.pbl_type == PBLType::MRF) {
+        ComputeDiffusivityMRF(xvel, yvel, cons_in, eddyViscosity,
                               geom, turbChoice, SurfLayer,
                               use_terrain_fitted_coords, use_moisture,
                               level, bc_ptr, vert_only, z_phys_nd);

@@ -4,12 +4,36 @@
 using namespace amrex;
 
 /**
- * Project the single-level velocity field to enforce incompressibility
+ * Project the single-level velocity field to enforce the anelastic constraint
  * Note that the level may or may not be level 0.
  */
-void ERF::project_velocities (int lev, Real l_dt, Vector<MultiFab>& mom_mf)
+void ERF::project_velocity (int lev, Real l_dt)
 {
-    BL_PROFILE("ERF::project_velocities()");
+    BL_PROFILE("ERF::project_velocity()");
+    VelocityToMomentum(vars_new[lev][Vars::xvel], IntVect{0},
+                       vars_new[lev][Vars::yvel], IntVect{0},
+                       vars_new[lev][Vars::zvel], IntVect{0},
+                       vars_new[lev][Vars::cons],
+                       rU_new[lev], rV_new[lev], rW_new[lev],
+                       Geom(lev).Domain(), domain_bcs_type);
+
+    Vector<MultiFab> tmp_mom;
+
+    tmp_mom.push_back(MultiFab(vars_new[lev][Vars::cons],make_alias,0,1));
+    tmp_mom.push_back(MultiFab(rU_new[lev],make_alias,0,1));
+    tmp_mom.push_back(MultiFab(rV_new[lev],make_alias,0,1));
+    tmp_mom.push_back(MultiFab(rW_new[lev],make_alias,0,1));
+
+    project_momenta(lev, l_dt, tmp_mom);
+}
+
+/**
+ * Project the single-level momenta to enforce the anelastic constraint
+ * Note that the level may or may not be level 0.
+ */
+void ERF::project_momenta (int lev, Real l_dt, Vector<MultiFab>& mom_mf)
+{
+    BL_PROFILE("ERF::project_momenta()");
 
     auto const dom_lo = lbound(geom[lev].Domain());
     auto const dom_hi = ubound(geom[lev].Domain());
@@ -86,7 +110,7 @@ void ERF::project_velocities (int lev, Real l_dt, Vector<MultiFab>& mom_mf)
 
             const Array4<Real const>&     z_nd = z_phys_nd[lev]->const_array(mfi);
             const Array4<Real const>&     mf_u =  mapfac[lev][MapFacType::u_x]->const_array(mfi);
-            const Array4<Real const>&     mf_v =  mapfac[lev][MapFacType::v_x]->const_array(mfi);
+            const Array4<Real const>&     mf_v =  mapfac[lev][MapFacType::v_y]->const_array(mfi);
 
             //
             // Define Omega from (rho0 W) but store it in the same array
@@ -301,7 +325,7 @@ void ERF::project_velocities (int lev, Real l_dt, Vector<MultiFab>& mom_mf)
              const Array4<Real      >& rho0w_arr = mom_mf[IntVars::zmom].array(mfi);
              const Array4<Real const>&      z_nd = z_phys_nd[lev]->const_array(mfi);
              const Array4<Real const>&      mf_u =  mapfac[lev][MapFacType::u_x]->const_array(mfi);
-             const Array4<Real const>&      mf_v =  mapfac[lev][MapFacType::v_x]->const_array(mfi);
+             const Array4<Real const>&      mf_v =  mapfac[lev][MapFacType::v_y]->const_array(mfi);
              ParallelFor(tbz, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
                  Real omega = rho0w_arr(i,j,k);
                  rho0w_arr(i,j,k) = WFromOmega(i,j,k,omega,

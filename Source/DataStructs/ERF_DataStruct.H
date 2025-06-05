@@ -18,8 +18,12 @@
 #include <ERF_TurbPertStruct.H>
 
 enum MapFacType {
+//  This version assumes isotropic
     m_x, u_x, v_x, num,
     m_y = 0, u_y = 1, v_y = 2
+//  This version allows for non-isotropic
+//  m_x, u_x, v_x,
+//  m_y, u_y, v_y, num
 };
 
 enum TauType {
@@ -449,7 +453,19 @@ struct SolverChoice {
                 }
             }
         }
-
+        // MRF
+        for (int lev = 0; lev <= max_level; lev++) {
+            if (turbChoice[lev].pbl_ysu_use_consistent_coriolis) {
+                if (use_coriolis) {
+                    turbChoice[lev].pbl_ysu_coriolis_freq = coriolis_factor * sinphi;
+                    if (lev == 0) {
+                        amrex::Print() << "MRF PBL using ERF coriolis frequency: " << turbChoice[lev].pbl_ysu_coriolis_freq << std::endl;
+                    }
+                } else {
+                    amrex::Abort("MRF cannot use ERF coriolis frequency if not using coriolis");
+                }
+            }
+        }
 
         // Which type of multilevel coupling
         coupling_type = CouplingType::TwoWay; // Default

@@ -290,6 +290,7 @@ ERF::ERF_shared ()
     detJ_cc_new.resize(nlevs_max);
 
     z_phys_nd_src.resize(nlevs_max);
+    z_phys_cc_src.resize(nlevs_max);
     detJ_cc_src.resize(nlevs_max);
     ax_src.resize(nlevs_max);
     ay_src.resize(nlevs_max);
@@ -725,9 +726,11 @@ ERF::InitData_pre ()
         // BC compatibility
         if ( ( (solverChoice.turbChoice[lev].pbl_type == PBLType::MYNN25)   ||
                (solverChoice.turbChoice[lev].pbl_type == PBLType::MYNNEDMF) ||
-               (solverChoice.turbChoice[lev].pbl_type == PBLType::YSU)       ) &&
+               (solverChoice.turbChoice[lev].pbl_type == PBLType::YSU) ||
+               (solverChoice.turbChoice[lev].pbl_type == PBLType::MRF)
+                   ) &&
             phys_bc_type[Orientation(Direction::z,Orientation::low)] != ERF_BC::surface_layer ) {
-            Abort("MYNN2.5/MYNNEDMF/YSU PBL Model requires MOST at lower boundary");
+            Abort("MYNN2.5/MYNNEDMF/YSU/MRF PBL Model requires MOST at lower boundary");
         }
         if ( (solverChoice.turbChoice[lev].les_type == LESType::Deardorff) &&
              (solverChoice.turbChoice[lev].Ce_wall > 0) &&
@@ -986,7 +989,7 @@ ERF::InitData_post ()
             }
             for (int lev = 0; lev <= finest_level; ++lev)
             {
-                project_velocities(lev, dummy_dt, vars_new[lev]);
+                project_velocity(lev, dummy_dt);
                 pp_inc[lev].setVal(0.);
                 gradp[lev][GpVars::gpx].setVal(0.);
                 gradp[lev][GpVars::gpy].setVal(0.);
