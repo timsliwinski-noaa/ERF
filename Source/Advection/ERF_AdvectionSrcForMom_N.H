@@ -366,6 +366,7 @@ AdvectionSrcForMomVert_N (const amrex::Box& bxx, const amrex::Box& bxy, const am
                           const int lo_z_face, const int hi_z_face)
 {
     if (vert_adv_type == AdvType::Centered_2nd) {
+        amrex::Print() << "USING CENTERD SECOND" << std::endl;
         AdvectionSrcForMomWrapper_N<InterpType_H,CENTERED2,UPWINDALL>(bxx, bxy, bxz,
                                                                       rho_u_rhs, rho_v_rhs, rho_w_rhs,
                                                                       rho_u, rho_v, rho_w, u, v, w,
@@ -376,6 +377,7 @@ AdvectionSrcForMomVert_N (const amrex::Box& bxx, const amrex::Box& bxy, const am
                                                                       vert_adv_type,
                                                                       lo_z_face, hi_z_face);
     } else if (vert_adv_type == AdvType::Upwind_3rd) {
+        amrex::Print() << "USING UPWIND THIRD" << std::endl;
         AdvectionSrcForMomWrapper_N<InterpType_H,UPWIND3,UPWINDALL>(bxx, bxy, bxz,
                                                                     rho_u_rhs, rho_v_rhs, rho_w_rhs,
                                                                     rho_u, rho_v, rho_w, u, v, w,
@@ -386,6 +388,7 @@ AdvectionSrcForMomVert_N (const amrex::Box& bxx, const amrex::Box& bxy, const am
                                                                     vert_adv_type,
                                                                     lo_z_face, hi_z_face);
     } else if (vert_adv_type == AdvType::Centered_4th) {
+        amrex::Print() << "USING CENTERED FOURTH" << std::endl;
         AdvectionSrcForMomWrapper_N<InterpType_H,CENTERED4,UPWINDALL>(bxx, bxy, bxz,
                                                                       rho_u_rhs, rho_v_rhs, rho_w_rhs,
                                                                       rho_u, rho_v, rho_w, u, v, w,
@@ -396,6 +399,7 @@ AdvectionSrcForMomVert_N (const amrex::Box& bxx, const amrex::Box& bxy, const am
                                                                       vert_adv_type,
                                                                       lo_z_face, hi_z_face);
     } else if (vert_adv_type == AdvType::Upwind_5th) {
+        amrex::Print() << "USING UPWIND FIFTH" << std::endl;
         AdvectionSrcForMomWrapper_N<InterpType_H,UPWIND5,UPWINDALL>(bxx, bxy, bxz,
                                                                     rho_u_rhs, rho_v_rhs, rho_w_rhs,
                                                                     rho_u, rho_v, rho_w, u, v, w,
@@ -406,6 +410,7 @@ AdvectionSrcForMomVert_N (const amrex::Box& bxx, const amrex::Box& bxy, const am
                                                                     vert_adv_type,
                                                                     lo_z_face, hi_z_face);
     } else if (vert_adv_type == AdvType::Centered_6th) {
+        amrex::Print() << "USING CENTERED SIXTH" << std::endl;
         AdvectionSrcForMomWrapper_N<InterpType_H,CENTERED6,UPWINDALL>(bxx, bxy, bxz,
                                                                       rho_u_rhs, rho_v_rhs, rho_w_rhs,
                                                                       rho_u, rho_v, rho_w, u, v, w,
